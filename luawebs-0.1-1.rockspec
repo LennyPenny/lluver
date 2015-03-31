@@ -1,30 +1,30 @@
-package = "luaWebs"
-version = "0.1-1"
+package = "lluver"
+version = "0.1-2"
 source = {
-	url = "git://github.com/LennyPenny/luaWebs",
-	tag = "v0.1"
+	url = "git://github.com/LennyPenny/lluver",
+	tag = "v0.11"
 }
 
 description = {
-	summary = "Bare-bones http api-server",
+	summary = "Simple api server based on libuv",
 	detailed = [[
-		tdb
+		Simple api server based on libuv
 	]],
-	homepage = "tbd",
-	license = "Apache v2"
+	homepage = "github.com/LennyPenny/lluver",
+	license = "MIT"
 }
 
 dependencies = {
-	"luv"
+	"lluv"
 }
 
 build = {
 	type = "builtin",
 	
 	modules = {
-		luaWebs = "src/luaWebs.lua",
-		["luaWebs.http-codec"] = "src/luaWebs/http-codec.lua",
-		["luaWebs.url"] = "src/luaWebs/url.lua",
-		["luaWebs.querystring"] = "src/luaWebs/querystring.lua"
+		lluver = "src/lluver.lua",
+		["lluver.http-codec"] = "src/lluver/http-codec.lua",
+		["lluver.url"] = "src/lluver/url.lua",
+		["lluver.querystring"] = "src/lluver/querystring.lua"
 	}
 }
