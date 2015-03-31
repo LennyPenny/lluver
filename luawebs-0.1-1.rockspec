@@ -11,7 +11,7 @@ description = {
 		Simple api server based on libuv
 	]],
 	homepage = "github.com/LennyPenny/lluver",
-	license = "MIT"
+	license = "Apache v2"
 }
 
 dependencies = {
