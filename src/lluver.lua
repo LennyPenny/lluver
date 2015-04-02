@@ -6,15 +6,12 @@ local exports = {}
 
 local defaultSettings = {
 	host = "127.0.0.1", --localhost
-	port = 8080,
-	maxQueue = 128
+	port = 8080
 }
 
 local lluver = {}
 
-lluver.routes = {
-	GET = {}
-}
+lluver.routes = {}
 
 lluver.defaultResponse = {
 	code = 200,
@@ -26,8 +23,27 @@ lluver.defaultErrorResponse = {
 	body = "404 Not Found"
 }
 
+function lluver:addRoute(method, route, callback)
+	if not lluver.routes[method] then
+		lluver.routes[method] = {}
+	end
+	lluver.routes[method][route] = callback
+end
+
 function lluver:get(route, callback)
-	self.routes.GET[route] = callback
+	self:addRoute("GET", route, callback)
+end
+
+function lluver:post(route, callback)
+	self:addRoute("POST", route, callback)
+end
+
+function lluver:put(route, callback)
+	self:addRoute("PUT", route, callback)
+end
+
+function lluver:delete(route, callback)
+	self:addRoute("DELETE", route, callback)
 end
 
 function lluver:makeResponse(req, resp)
@@ -35,8 +51,11 @@ function lluver:makeResponse(req, resp)
 	local body = ""
 	if type(resp) == "string" then
 		body = resp
-	else
-		body = resp.body
+	elseif type(resp) == "table" then
+		if resp.body then 
+			body = resp.body
+			resp.body = nil
+		end
 		for k, v in pairs(resp) do
 			headers[k] = v
 		end
@@ -55,10 +74,10 @@ function lluver:onRequest(req)
 	req.pathname = options.pathname
 	req.params = options.query
 
-	if type(self.routes[req.method][req.pathname]) == "function" then
-		self:makeResponse(req, self.routes[req.method][req.pathname](req))
-	else
+	if not self.routes[req.method] or not type(self.routes[req.method][req.pathname]) == "function" then
 		self:errorResponse(req)
+	else
+		self:makeResponse(req, self.routes[req.method][req.pathname](req))
 	end
 end
 

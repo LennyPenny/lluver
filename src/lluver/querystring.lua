@@ -20,9 +20,6 @@ limitations under the License.
 
 local exports = {}
 
-exports.name = "luvit/querystring"
-exports.version = "1.0.0"
-
 local string = require('string')
 local find = string.find
 local gsub = string.gsub
