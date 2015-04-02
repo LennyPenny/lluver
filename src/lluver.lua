@@ -95,14 +95,12 @@ function lluver:callRequestCallback(req)
 	else
 		req.urlParams = {}
 		local curpos = self.routes[req.method]
-		print(req.pathname)
 		for part in string.gmatch(req.pathname, "[^/]+/-") do
 			if not curpos[part] then
 				if curpos[1] then
 					req.urlParams[curpos[1][self.routeParamSymbol]] = part
 					curpos = curpos[1]
 					goto continue
-					break
 				else
 					self:errorResponse(req)
 				end
@@ -112,7 +110,6 @@ function lluver:callRequestCallback(req)
 		end
 		self:makeResponse(req, curpos.callback(req))
 	end
-
 end
 
 function lluver:onRequest(req)
