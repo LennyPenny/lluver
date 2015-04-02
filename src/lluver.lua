@@ -23,11 +23,29 @@ lluver.defaultErrorResponse = {
 	body = "404 Not Found"
 }
 
+lluver.routeParamSymbol = ":" --used by angular and lapis
+
 function lluver:addRoute(method, route, callback)
 	if not lluver.routes[method] then
 		lluver.routes[method] = {}
 	end
-	lluver.routes[method][route] = callback
+
+	if not string.find(route, self.routeParamSymbol) then
+		lluver.routes[method][route] = callback --super fast access for static routes
+		return
+	end
+
+	local curpos = lluver.routes[method] --current pos in the route, this only works because lua doesn't do deep copies
+	for part in string.gmatch(route, "[^/]+/-") do
+		if string.sub(part, 1, #self.routeParamSymbol) == self.routeParamSymbol then
+			curpos[1] = {[self.routeParamSymbol] = string.sub(part, #self.routeParamSymbol + 1)} --this is so we know when to set a route param and its name
+			curpos = curpos[1]
+		else
+			curpos[part] = curpos[part] or {}
+			curpos = curpos[part]
+		end
+	end
+	curpos.callback = callback
 end
 
 function lluver:get(route, callback)
@@ -69,19 +87,43 @@ function lluver:errorResponse(req)
 	self:makeResponse(req, self.defaultErrorResponse)
 end
 
+function lluver:callRequestCallback(req)
+	if not self.routes[req.method] then
+		self:errorResponse(req)
+	elseif type(self.routes[req.method][req.pathname]) == "function" then
+		self:makeResponse(req, self.routes[req.method][req.pathname](req))
+	else
+		req.urlParams = {}
+		local curpos = self.routes[req.method]
+		print(req.pathname)
+		for part in string.gmatch(req.pathname, "[^/]+/-") do
+			if not curpos[part] then
+				if curpos[1] then
+					req.urlParams[curpos[1][self.routeParamSymbol]] = part
+					curpos = curpos[1]
+					goto continue
+					break
+				else
+					self:errorResponse(req)
+				end
+			end
+			curpos = curpos[part]
+			::continue::
+		end
+		self:makeResponse(req, curpos.callback(req))
+	end
+
+end
+
 function lluver:onRequest(req)
 	local options = url.parse(req.path, true)
 	req.pathname = options.pathname
 	req.params = options.query
 
-	if not self.routes[req.method] or not type(self.routes[req.method][req.pathname]) == "function" then
-		self:errorResponse(req)
-	else
-		self:makeResponse(req, self.routes[req.method][req.pathname](req))
-	end
+	lluver:callRequestCallback(req)
 end
 
-function lluver.unpackHeaders(event)
+function lluver:unpackHeaders(event)
 	event.headers = {}
 	for k, v in ipairs(event) do
 		local name, value = table.unpack(v)
@@ -90,7 +132,6 @@ function lluver.unpackHeaders(event)
 	end
 	return event
 end
-
 
 function lluver:onConnection(err)
 	if err then self.sock:close() error("Failed on connection: ", err) end
@@ -108,7 +149,7 @@ function lluver:onConnection(err)
 			if not extra then break end
 			buffer = extra
 			if type(event) == "table" then
-				req = lluver.unpackHeaders(event)
+				req = self:unpackHeaders(event)
 			elseif type(event) == "string" then
 				if #event == 0 then 
 					req.client = client
@@ -152,6 +193,7 @@ function lluver:onBind(err, host, port)
 	end
 	self.sock:listen(onConnection)
 end
+
 function lluver:start()
 	print"starting tcp socket..."
 	self.sock = uv.tcp()
